@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS `user_applications` (
 CREATE TABLE IF NOT EXISTS `applications` (
 	`application_id` int(11) AUTO_INCREMENT NOT NULL,
 	`name` varchar(255) COLLATE utf8_bin NOT NULL,
+	`url` varchar(255) COLLATE utf8_bin NOT NULL,
     `client_id` varchar(255) COLLATE utf8_bin NOT NULL,
     `client_secret` varchar(255) COLLATE utf8_bin NOT NULL,
     primary key (`application_id`, `client_id`)
