@@ -3,6 +3,9 @@ const app = express();
 require('dotenv').config();
 const port = process.env.PORT ;
 require('./src/bootstrap');
+const bodyParser = require('body-parser');
+app.use(bodyParser.json());
+require('./src/config/mysql')(app);
 
 require('./src/router')(app);
 
