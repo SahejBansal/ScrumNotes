@@ -57,7 +57,7 @@ module.exports = {
             if (!result2 || result2 == null) {
                 console.log(err);
             } else {
-                
+
                 data = {
                     user_id: result2.insertId,
                     application_id: appId,
@@ -67,5 +67,9 @@ module.exports = {
                 res.send(data);
             }
         }
+    },
+
+    async random(req, res) {
+
     }
 }
