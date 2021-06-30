@@ -16,7 +16,7 @@ const { exists } = require("fs");
 // });
 
 function randomString(size) {
-  return Crypto.randomBytes(size).toString("base64").slice(0, size);
+    return Crypto.randomBytes(size).toString("base64").slice(0, size);
 }
 
 // function addUserToEtherpad(userName) {
@@ -59,26 +59,35 @@ async function getAppId(cID, cSEC) {
     }
 }
 
-async function userExists(name,email){
+async function userExists(name, email) {
     userApplicationExistsSql = 'select user.userId, user.email, user.name from user INNER JOIN user_applications on user.userID = user_applications.user_id'
     userExistsSql = 'SELECT * FROM user WHERE name = ? OR email = ?';
-    var userExistsSqlParams = [name,email]
+    var userExistsSqlParams = [name, email]
     var userExistsQuery = await dbQuery(userExistsSql, userExistsSqlParams)
     var userApplicationExistsQuery = await dbQuery(userApplicationExistsSql)
     // console.log(userExistsQuery)
     // console.log(userApplicationExistsQuery)
-    if(Object.keys(userExistsQuery).length === 0){
+    if (Object.keys(userExistsQuery).length === 0) {
         // console.log("false");
         return false;
-        
-    }else{
-        
+
+    } else {
+
         // console.log("true")
         return true;
     }
-    
+
 
 }
+
+var userAuthenticated = function (req, cb) {
+    log('debug', 'userAuthenticated');
+    if (req.body.token) {
+        cb(true);
+    } else {
+        cb(false);
+    }
+};
 
 // function addUserToEtherpad(userName) {
 //     let author = etherpad.createAuthorIfNotExistsFor(userName, null);
@@ -108,6 +117,17 @@ async function existValueInDatabase(sql, params, cb) {
     var result = await dbQuery(sql, params)
     if (!result || result == null) {
         log('error', 'existValueInDatabase error, sql: ' + sql);
+        cb(false);
+    } else {
+        cb(true);
+    }
+}
+
+async function getOneValueSql(sql, params, cb) {
+    log('debug', 'getOneValueSql');
+    var result = await dbQuery(sql, params)
+    if (!result || result == null) {
+        log('error', 'getOneValueSql error, sql: ' + sql);
         cb(false);
     } else {
         cb(true);
@@ -198,27 +218,25 @@ module.exports = {
             email: req.body.email,
 
         }
-        const emailRegex  = /^\w+([-+.']\w+)*@\w+([-.]\w+)*\.\w+([-.]\w+)*$/
+        const emailRegex = /^\w+([-+.']\w+)*@\w+([-.]\w+)*\.\w+([-.]\w+)*$/
 
-        if(emailRegex.test(args.email))
-        {
+        if (emailRegex.test(args.email)) {
             registerUserSql = 'INSERT INTO user(name,email) VALUES(?,?)'
-            var params = [args.name,args.email] 
-            const verifyUserExists = await userExists(args.name,args.email)
+            var params = [args.name, args.email]
+            const verifyUserExists = await userExists(args.name, args.email)
 
-            if(!verifyUserExists)
-            {
-                var registerUserQuery = await dbQuery(registerUserSql,params)
+            if (!verifyUserExists) {
+                var registerUserQuery = await dbQuery(registerUserSql, params)
                 res.send(registerUserQuery)
-            }else{
+            } else {
                 // console.log("User already exists")
                 res.send("User already exists")
             }
-           
 
-           
-            
-        }else{
+
+
+
+        } else {
             res.send("Invalid Email")
         }
         // new formidable.IncomingForm().parse(req, function (err, fields) {
@@ -253,41 +271,79 @@ module.exports = {
         //                     res.send(data);
         //                 }
         //                 // addUserQuery.on('error', mySqlErrorHandler);
-                        // addUserQuery.on('result', function (newUser) {
-                        //     connection.pause();
-                        //     //addUserToEtherpad(newUser.insertId, function (cb) {
-                        //     let mappedUser = addUserToEtherpad(newUser.insertId);
-                        // });
-                        // addUserQuery.on('end', function () {
-                        //     var data = {};
-                        //     data.success = true;
-                        //     data.error = false;
-                        //     res.send(data);
-                        //     //cb(true);
-                        // });
-                    // })
-                    // createSalt(function (salt) {
-                    //     getPassword(function (consString) {
-                    //         /* Fields in User table are:userID, name, email, password, confirmed, FullName, confirmationString, salt, active*/
-                    //         addUserSql = "INSERT INTO User VALUES(null,?, ?,null, 0 ,null ,?, ?, 0)";
-                    //         var addUserQuery = connection.query(addUserSql, [userEmail, userEmail, consString, salt]);
-                    //         addUserQuery.on('error', mySqlErrorHandler);
-                    //         addUserQuery.on('result', function (newUser) {
-                    //             connection.pause();
-                    //             //addUserToEtherpad(newUser.insertId, function (cb) {
-                    //             let mappedUser = addUserToEtherpad(newUser.insertId);
-                    //         });
-                    //         addUserQuery.on('end', function () {
-                    //             var data = {};
-                    //             data.success = true;
-                    //             data.error = false;
-                    //             res.send(data);
-                    //             //cb(true);
-                    //         });
-                    //     });
-                    // });
+        // addUserQuery.on('result', function (newUser) {
+        //     connection.pause();
+        //     //addUserToEtherpad(newUser.insertId, function (cb) {
+        //     let mappedUser = addUserToEtherpad(newUser.insertId);
+        // });
+        // addUserQuery.on('end', function () {
+        //     var data = {};
+        //     data.success = true;
+        //     data.error = false;
+        //     res.send(data);
+        //     //cb(true);
+        // });
+        // })
+        // createSalt(function (salt) {
+        //     getPassword(function (consString) {
+        //         /* Fields in User table are:userID, name, email, password, confirmed, FullName, confirmationString, salt, active*/
+        //         addUserSql = "INSERT INTO User VALUES(null,?, ?,null, 0 ,null ,?, ?, 0)";
+        //         var addUserQuery = connection.query(addUserSql, [userEmail, userEmail, consString, salt]);
+        //         addUserQuery.on('error', mySqlErrorHandler);
+        //         addUserQuery.on('result', function (newUser) {
+        //             connection.pause();
+        //             //addUserToEtherpad(newUser.insertId, function (cb) {
+        //             let mappedUser = addUserToEtherpad(newUser.insertId);
+        //         });
+        //         addUserQuery.on('end', function () {
+        //             var data = {};
+        //             data.success = true;
+        //             data.error = false;
+        //             res.send(data);
+        //             //cb(true);
+        //         });
+        //     });
+        // });
+    },
+
+    //still working on the queries and table structuring for this
+    async createGroup(req, res) {
+        userAuthenticated(req, function (authenticated) {
+            var data = {};
+            if (authenticated) {
+                if (!fields.groupName) {
+                    sendError("Group Name not defined", res);
+                    return;
                 }
-    //         });
-    //     });
-    // }
-  }
+                var existGroupSql = "SELECT * from Groups WHERE Groups.name = ?";
+                getOneValueSql(existGroupSql, [fields.groupName], function (found) {
+                    if (found) {
+                        sendError('Group already exists', res);
+                        return;
+                    } else {
+                        var addGroupSql = "INSERT INTO Groups VALUES(null, ?)";
+                        var group = await dbQuery(addGroupSql, [fields.groupName]);
+                        data.groupid = group.insertId;
+                        var addUserGroupSql = "INSERT INTO UserGroup Values(?,?,1)";
+                        var addUserGroupQuery = await dbQuery(addUserGroupSql, [req.session.userId, group.insertId]);
+                        if (addUserGroupQuery) {
+                            etherpad.createGroupIfNotExistsFor(group.insertId.toString(), function (err, val) {
+                                if (err) {
+                                    log('error', 'failed to createGroupIfNotExistsFor');
+                                } else {
+                                    data.success = true;
+                                    data.error = null;
+                                    res.send(data);
+                                }
+                            });
+                        } else {
+                            res.send("error addusergroupQuery")
+                        }
+                    }
+                });
+            } else {
+                res.send("You are not logged in!!");
+            }
+        });
+    }
+}
