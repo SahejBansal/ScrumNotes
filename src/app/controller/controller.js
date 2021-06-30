@@ -8,6 +8,13 @@ const { exists } = require("fs");
 //     port: 9001,
 // });
 
+// api = require('etherpad-lite-client')
+// etherpad = api.connect({
+//     apikey: '308c704c36b41c846ba1713a59f92c6a9707ced910894de32070287a03bfcb68',
+//     host: 'localhost',
+//     port: 9001,
+// });
+
 function randomString(size) {
   return Crypto.randomBytes(size).toString("base64").slice(0, size);
 }
@@ -71,6 +78,54 @@ async function userExists(name,email){
     }
     
 
+}
+
+// function addUserToEtherpad(userName) {
+//     let author = etherpad.createAuthorIfNotExistsFor(userName, null);
+//     if (author === null)
+//         throw new customError("there was an error creating user", "ep_maadix");
+//     return author;
+// }
+
+async function TokenGen(cID, cSEC, cb) {
+    var AppExistInDBsql = 'SELECT * FROM applications WHERE client_id=? and client_secret=?';
+    var params = [cID, cSEC];
+    const result = await dbQuery(AppExistInDBsql, params);
+    response = JSON.parse(JSON.stringify(result))
+    if (!result || result == null) {
+        console.log(err);
+    } else {
+        var token = randomString(21);
+        var appId = response[0].application_id;
+        var saveTokenInAppUserssql = 'INSERT INTO user_applications (application_id, token) VALUES (?,?)';
+        var params2 = [appId, token]
+        const result2 = await dbQuery(saveTokenInAppUserssql, params2);
+        cb(token);
+    }
+}
+
+async function existValueInDatabase(sql, params, cb) {
+    var result = await dbQuery(sql, params)
+    if (!result || result == null) {
+        log('error', 'existValueInDatabase error, sql: ' + sql);
+        cb(false);
+    } else {
+        cb(true);
+    }
+}
+
+function getAppId(cID, cSEC) {
+    var AppExistInDBsql = 'SELECT * FROM applications WHERE client_id=? and client_secret=?';
+    var params = [cID, cSEC];
+    const result = await dbQuery(AppExistInDBsql, params);
+    if (!result || result == null) {
+        console.log("Error fetching App Id");
+        return null;
+    } else {
+        response = JSON.parse(JSON.stringify(result));
+        var appId = response[0].application_id;
+        return appId;
+    }
 }
 
 module.exports = {
@@ -236,6 +291,3 @@ module.exports = {
     //     });
     // }
   }
-
-
-
