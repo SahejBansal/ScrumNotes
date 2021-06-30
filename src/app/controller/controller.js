@@ -14,6 +14,15 @@ function randomString(size) {
         .slice(0, size)
 }
 
+var userAuthenticated = function (req, cb) {
+    log('debug', 'userAuthenticated');
+    if (req.body.token) {
+        cb(true);
+    } else {
+        cb(false);
+    }
+};
+
 // function addUserToEtherpad(userName) {
 //     let author = etherpad.createAuthorIfNotExistsFor(userName, null);
 //     if (author === null)
@@ -42,6 +51,17 @@ async function existValueInDatabase(sql, params, cb) {
     var result = await dbQuery(sql, params)
     if (!result || result == null) {
         log('error', 'existValueInDatabase error, sql: ' + sql);
+        cb(false);
+    } else {
+        cb(true);
+    }
+}
+
+async function getOneValueSql(sql, params, cb) {
+    log('debug', 'getOneValueSql');
+    var result = await dbQuery(sql, params)
+    if (!result || result == null) {
+        log('error', 'getOneValueSql error, sql: ' + sql);
         cb(false);
     } else {
         cb(true);
@@ -193,5 +213,47 @@ module.exports = {
                 }
             });
         });
+    },
+
+    //still working on the queries and table structuring for this
+    async createGroup(req, res) {
+        userAuthenticated(req, function (authenticated) {
+            var data = {};
+            if (authenticated) {
+                if (!fields.groupName) {
+                    sendError("Group Name not defined", res);
+                    return;
+                }
+                var existGroupSql = "SELECT * from Groups WHERE Groups.name = ?";
+                getOneValueSql(existGroupSql, [fields.groupName], function (found) {
+                    if (found) {
+                        sendError('Group already exists', res);
+                        return;
+                    } else {
+                        var addGroupSql = "INSERT INTO Groups VALUES(null, ?)";
+                        var group = await dbQuery(addGroupSql, [fields.groupName]);
+                        data.groupid = group.insertId;
+                        var addUserGroupSql = "INSERT INTO UserGroup Values(?,?,1)";
+                        var addUserGroupQuery = await dbQuery(addUserGroupSql, [req.session.userId, group.insertId]);
+                        if (addUserGroupQuery) {
+                            etherpad.createGroupIfNotExistsFor(group.insertId.toString(), function (err, val) {
+                                if (err) {
+                                    log('error', 'failed to createGroupIfNotExistsFor');
+                                } else {
+                                    data.success = true;
+                                    data.error = null;
+                                    res.send(data);
+                                }
+                            });
+                        } else {
+                            res.send("error addusergroupQuery")
+                        }
+                    }
+                });
+            } else {
+                res.send("You are not logged in!!");
+            }
+        });
     }
+
 }
