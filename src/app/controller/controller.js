@@ -214,13 +214,12 @@ module.exports = {
     if (!result || result == null) {
       console.log(err);
     } else {
-      data = {
-        cID: cID,
-        cSEC: cSEC,
-        id: result.insertId,
-      };
+      
       console.log("success");
-      res.send(data);
+      res.send({code:201,message:"success",data:{
+          cID: cID,
+        cSEC: cSEC,
+        id: result.insertId,}});
     }
   },
 
@@ -293,13 +292,23 @@ module.exports = {
                 }
               );
             } else {
-              res.status(409).send({code:409, message: "User already exists" ,data:{}});
+              res
+                .status(409)
+                .send({ code: 409, message: "User already exists", data: {} });
             }
           } else {
-            res.status(400).send({code:400, message: "Invalid Email",data:{} });
+            res
+              .status(400)
+              .send({ code: 400, message: "Invalid Email", data: {} });
           }
         } else {
-          res.status(404).send({code:400, message: "Application ID does not exist." ,data:{}});
+          res
+            .status(404)
+            .send({
+              code: 400,
+              message: "Application ID does not exist.",
+              data: {},
+            });
         }
       }
     );
@@ -430,21 +439,21 @@ module.exports = {
                         data.success = true;
                         data.error = null;
                         data.groupId = val.groupID;
-                        res.send(data);
+                        res.send({code:201,message:"Created",data:{data}});
                       }
                     }
                   );
                 } else {
-                  res.send("error addusergroupQuery");
+                  res.send({code:"404", message:"error addusergroupQuery",data:{}});
                 }
               }
             }
           );
         } else {
-          res.send("User does not exist for provided token");
+          res.send({code:"404",message:"User does not exist for provided token",data:{}});
         }
       } else {
-        res.send("You are not logged in!!");
+        res.send({code:"401",message:"You are not logged in!!",data:{}});
       }
     });
   },
@@ -481,15 +490,15 @@ module.exports = {
                 var data = {};
                 data.success = true;
                 data.error = null;
-                res.send(data);
+                res.send({code:"201",message:"addPadToGroups success",data:{data}});
               } else {
-                res.send("error addPadToGroupQuery");
+                res.send({code:"400",message:"error addPadToGroupQuery",data:{}});
               }
             }
           }
         );
       } else {
-        res.send("You are not logged in!!");
+        res.send({code:"401",message:"You are not logged in",data:{}});
       }
     });
   },
@@ -538,22 +547,22 @@ module.exports = {
                         data.pad_name = args.padname;
                         data.padID = group + "$" + args.padname;
                         // data.location = fields.location;
-                        res.send(data);
+                        res.send({code:201,message:"Session created",data:{data}});
                         console.log(data);
                       })();
                     }
                   })();
                 });
               } else {
-                sendError("User not in Group", res);
+                res.send({code:404,message:"User not in Group",data:{}});
               }
             }
           );
         } else {
-          res.send("User doesnt exist for given token");
+            res.send({code:404,message:"User doesnt exist for given token",data:{}});
         }
       } else {
-        res.send("You are not logged in!!");
+        res.send({code:401,message:"You are not logged in",data:{}});
       }
     });
   },
@@ -635,7 +644,7 @@ module.exports = {
           });
         } else {
           // res.redirect("/login")
-          res.send("You are not logged in!!");
+          res.send({code:401,message:"You are not logged in",data:{}});
         }
       });
     });
