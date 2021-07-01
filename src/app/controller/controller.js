@@ -284,24 +284,22 @@ module.exports = {
                 appId,
                 async function (token) {
                   // console.log(token)
-                  
+
                   res.status(201).send({
-                    message: "Registeration Successful",
-                    token: token,
+                    code: 201,
+                    message: "Registration Successful",
+                    data: { token: token },
                   });
                 }
               );
             } else {
-              
-              res.status(409).send({ message: "User already exists" });
+              res.status(409).send({code:409, message: "User already exists" ,data:{}});
             }
           } else {
-            
-            res.status(400).send({ message: "Invalid Email" });
+            res.status(400).send({code:400, message: "Invalid Email",data:{} });
           }
         } else {
-          
-          res.status(404).send({ message: "Application ID does not exist." });;
+          res.status(404).send({code:400, message: "Application ID does not exist." ,data:{}});
         }
       }
     );
