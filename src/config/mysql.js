@@ -4,7 +4,7 @@ module.exports = async () => {
         host: 'localhost',
         user: 'etherpad',
         password: 'etherpad',
-        database: 'etherpad'
+        database: 'etherpad_lite_db'
     });
 
   global.dbQuery = async (query, params) => {
