@@ -26,7 +26,6 @@ function randomString(size) {
 //     return author;
 // }
 
-
 async function checkClientAndSecret(cID, cSEC, cb) {
   const clientIdAndClientSecretQuery =
     "SELECT * FROM applications WHERE client_id=? AND client_secret=?";
@@ -37,25 +36,22 @@ async function checkClientAndSecret(cID, cSEC, cb) {
   );
   if (Object.keys(clientIdAndClientSecretResult).length !== 0) {
     //   console.log(clientIdAndClientSecretResult[0].application_id)
-    cb(true,clientIdAndClientSecretResult[0].application_id);
+    cb(true, clientIdAndClientSecretResult[0].application_id);
   } else {
     cb(false);
   }
 }
-async function tokenGen(userId,appId,cb){
-    const newToken = randomString(21)
-    
+async function tokenGen(userId, appId, cb) {
+  const newToken = randomString(21);
 
-    const tokenQuery = 'INSERT INTO user_applications(user_id,application_id,token) VALUES(?,?,?)';
-    const tokenQueryParams = [userId,appId,newToken]
+  const tokenQuery =
+    "INSERT INTO user_applications(user_id,application_id,token) VALUES(?,?,?)";
+  const tokenQueryParams = [userId, appId, newToken];
 
-    const tokenQueryResult = await dbQuery(tokenQuery,tokenQueryParams)
-    if(tokenQueryResult!== null){
-        cb(newToken)
-
-    }
-    
-
+  const tokenQueryResult = await dbQuery(tokenQuery, tokenQueryParams);
+  if (tokenQueryResult !== null) {
+    cb(newToken);
+  }
 }
 async function getAppId(cID, cSEC) {
   var AppExistInDBsql =
@@ -105,8 +101,6 @@ var userAuthenticated = function (req, cb) {
 //         throw new customError("there was an error creating user", "ep_maadix");
 //     return author;
 // }
-
-
 
 async function existValueInDatabase(sql, params, cb) {
   const result = await dbQuery(sql, params);
@@ -276,27 +270,38 @@ module.exports = {
     checkClientAndSecret(
       args.client_id,
       args.client_secret,
-      async function (exists,appId) {
+      async function (exists, appId) {
         if (exists) {
           if (emailRegex.test(args.email)) {
             registerUserSql = "INSERT INTO user(name,email) VALUES(?,?)";
             var params = [args.name, args.email];
-        
+
             const verifyUserExists = await userExists(args.name, args.email);
             if (!verifyUserExists) {
               var registerUserQuery = await dbQuery(registerUserSql, params);
-                tokenGen(registerUserQuery.insertId,appId,async function (token){
-                    // console.log(token)
-                    res.send("Registeration successful token = " + token)
-                })              
+              tokenGen(
+                registerUserQuery.insertId,
+                appId,
+                async function (token) {
+                  // console.log(token)
+                  
+                  res.status(201).send({
+                    message: "Registeration Successful",
+                    token: token,
+                  });
+                }
+              );
+            } else {
               
-            }else{
-                res.send("User already exists")
+              res.status(409).send({ message: "User already exists" });
             }
+          } else {
+            
+            res.status(400).send({ message: "Invalid Email" });
           }
         } else {
-          res.send(false);
-          console.log(false);
+          
+          res.status(404).send({ message: "Application ID does not exist." });;
         }
       }
     );
