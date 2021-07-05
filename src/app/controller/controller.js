@@ -68,22 +68,32 @@ async function getAppId(cID, cSEC) {
   }
 }
 
-async function userExists(name, email) {
-  userApplicationExistsSql =
-    "select user.userId, user.email, user.name from user INNER JOIN user_applications on user.userID = user_applications.user_id";
-  userExistsSql = "SELECT * FROM user WHERE name = ? OR email = ?";
-  var userExistsSqlParams = [name, email];
-  var userExistsQuery = await dbQuery(userExistsSql, userExistsSqlParams);
-  var userApplicationExistsQuery = await dbQuery(userApplicationExistsSql);
-  // console.log(userExistsQuery)
-  // console.log(userApplicationExistsQuery)
-  if (Object.keys(userExistsQuery).length === 0) {
-    // console.log("false");
-    return false;
-  } else {
-    // console.log("true")
-    return true;
+async function 
+userExists(name, email,appId,cb) {
+  const userInUserSql = `SELECT userID FROM user WHERE email = "${email}"`;
+  const userInUserResult = await dbQuery(userInUserSql);
+
+  if(userInUserResult || userInUserResult !== null)
+  {
+    userInUserResult.map(async (userId,index)=>{
+  
+      const userInApplicationSql = `SELECT user_id FROM user_applications where application_id = "${appId}" AND user_id = "${userId.userID}"`
+      const userInApplicationResult = await dbQuery(userInApplicationSql);
+      if(userInApplicationResult === null || userInApplicationResult){
+        console.log(userId.userID)
+
+        return cb(true);
+        
+      }
+      
+    })
+    
+   
   }
+
+  
+  
+
 }
 
 var userAuthenticated = function (req, cb) {
@@ -279,27 +289,39 @@ module.exports = {
             registerUserSql = "INSERT INTO user(name,email,confirmed) VALUES(?,?,1)";
             var params = [args.name, args.email];
 
-            const verifyUserExists = await userExists(args.name, args.email);
-            if (!verifyUserExists) {
-              var registerUserQuery = await dbQuery(registerUserSql, params);
-              tokenGen(
-                registerUserQuery.insertId,
-                appId,
-                async function (token) {
-                  // console.log(token)
+            userExists(args.name,args.email,appId, function(exists){
+              if(!exists)
+              {
+                console.log(false)
+                res.send(false)
+              }else{
+                console.log(true)
+                res.send(true)
+              }
+            })
 
-                  res.status(201).send({
-                    code: 201,
-                    message: "Registration Successful",
-                    data: { token: token },
-                  });
-                }
-              );
-            } else {
-              res
-                .status(409)
-                .send({ code: 409, message: "User already exists", data: {} });
-            }
+            // const verifyUserExists = await userExists(args.name, args.email,appId);
+            // console.log("verifyUserExists = " +verifyUserExists)
+            // if (!verifyUserExists) {
+            //   var registerUserQuery = await dbQuery(registerUserSql, params);
+            //   tokenGen(
+            //     registerUserQuery.insertId,
+            //     appId,
+            //     async function (token) {
+            //       // console.log(token)
+
+            //       res.status(201).send({
+            //         code: 201,
+            //         message: "Registration Successful",
+            //         data: { token: token },
+            //       });
+            //     }
+            //   );
+            // } else {
+            //   res
+            //     .status(409)
+            //     .send({ code: 409, message: "User already exists", data: {} });
+            // }
           } else {
             res
               .status(400)
