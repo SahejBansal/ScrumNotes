@@ -1,30 +1,16 @@
 const Crypto = require("crypto");
 const { exists } = require("fs");
 
-// api = require('etherpad-lite-client')
-// etherpad = api.connect({
-//     apikey: '308c704c36b41c846ba1713a59f92c6a9707ced910894de32070287a03bfcb68',
-//     host: 'localhost',
-//     port: 9001,
-// });
-
-// api = require('etherpad-lite-client')
-// etherpad = api.connect({
-//     apikey: '308c704c36b41c846ba1713a59f92c6a9707ced910894de32070287a03bfcb68',
-//     host: 'localhost',
-//     port: 9001,
-// });
+api = require("etherpad-lite-client");
+const etherpad = api.connect({
+  apikey: "308c704c36b41c846ba1713a59f92c6a9707ced910894de32070287a03bfcb68",
+  host: "localhost",
+  port: 9001,
+});
 
 function randomString(size) {
   return Crypto.randomBytes(size).toString("base64").slice(0, size);
 }
-
-// function addUserToEtherpad(userName) {
-//     let author = etherpad.createAuthorIfNotExistsFor(userName, null);
-//     if (author === null)
-//         throw new customError("there was an error creating user", "ep_maadix");
-//     return author;
-// }
 
 async function checkClientAndSecret(cID, cSEC, cb) {
   const clientIdAndClientSecretQuery =
@@ -41,6 +27,7 @@ async function checkClientAndSecret(cID, cSEC, cb) {
     cb(false);
   }
 }
+
 async function tokenGen(userId, appId, cb) {
   const newToken = randomString(21);
 
@@ -53,51 +40,56 @@ async function tokenGen(userId, appId, cb) {
     cb(newToken);
   }
 }
-async function getAppId(cID, cSEC) {
-  var AppExistInDBsql =
-    "SELECT * FROM applications WHERE client_id=? and client_secret=?";
-  var params = [cID, cSEC];
+
+async function getAppId(token, cb) {
+  console.log("DEBUG", "getting AppID");
+  var AppExistInDBsql = "SELECT * FROM user_applications WHERE token=?";
+  var params = [token];
   const result = await dbQuery(AppExistInDBsql, params);
   if (!result || result == null) {
     console.log("Error fetching App Id");
-    return null;
+    cb(0);
   } else {
     response = JSON.parse(JSON.stringify(result));
     var appId = response[0].application_id;
-    return appId;
+    console.log("log", "fetched appId from token:" + appId);
+    cb(appId);
   }
 }
 
-async function 
-userExists(name, email,appId,cb) {
+async function userExists(email, appId, cb) {
   const userInUserSql = `SELECT userID FROM user WHERE email = "${email}"`;
-  const userInUserResult = await dbQuery(userInUserSql);
+  const params = [];
+  const userInUserResult = await dbQuery(userInUserSql, params);
+  // console.log(userInUserResult);
 
-  if(userInUserResult || userInUserResult !== null)
-  {
-    userInUserResult.map(async (userId,index)=>{
-  
-      const userInApplicationSql = `SELECT user_id FROM user_applications where application_id = "${appId}" AND user_id = "${userId.userID}"`
-      const userInApplicationResult = await dbQuery(userInApplicationSql);
-      if(userInApplicationResult === null || userInApplicationResult){
-        console.log(userId.userID)
+  if (Object.keys(userInUserResult).length === 0) {
+    return cb(false);
+  } else if (Object.keys(userInUserResult).length !== 0) {
+    // var flag = true
+    userInUserResult.map(async (userId, index) => {
+      // console.log(index,userId)
+      const userInApplicationSql = `SELECT user_id FROM user_applications where application_id = "${appId}" AND user_id = "${userId.userID}"`;
+      const userInApplicationResult = await dbQuery(
+        userInApplicationSql,
+        params
+      );
+      console.log(userInApplicationResult);
 
+      if (Object.keys(userInApplicationResult).length !== 0) {
+        // console.log(flag+"one")
+        // flag = true;
         return cb(true);
-        
+      } else if (Object.keys(userInApplicationResult).length === 0) {
+        // flag = false
+        return cb(false);
       }
-      
-    })
-    
-   
+    });
   }
-
-  
-  
-
 }
 
 var userAuthenticated = function (req, cb) {
-  log("debug", "userAuthenticated");
+  console.log("debug", "userAuthenticated");
   if (req.body.token) {
     cb(true);
   } else {
@@ -105,17 +97,10 @@ var userAuthenticated = function (req, cb) {
   }
 };
 
-// function addUserToEtherpad(userName) {
-//     let author = etherpad.createAuthorIfNotExistsFor(userName, null);
-//     if (author === null)
-//         throw new customError("there was an error creating user", "ep_maadix");
-//     return author;
-// }
-
 async function existValueInDatabase(sql, params, cb) {
   const result = await dbQuery(sql, params);
   if (!result || result == null) {
-    log("error", "existValueInDatabase error, sql: " + sql);
+    console.log("error", "existValueInDatabase error, sql: " + sql);
     cb(false);
   } else {
     cb(true);
@@ -123,59 +108,47 @@ async function existValueInDatabase(sql, params, cb) {
 }
 
 async function getOneValueSql(sql, params, cb) {
-  log("debug", "getOneValueSql");
+  console.log("debug", "getOneValueSql:" + sql);
   const result = await dbQuery(sql, params);
-  if (!result || result == null) {
-    log("error", "getOneValueSql error, sql: " + sql);
+  if (!result || result == null || result == "") {
+    console.log("error", "getOneValueSql error");
     cb(false);
   } else {
+    //console.log("log", "getoneValueSql Result:" + result);
     cb(true);
   }
 }
 
-async function getAppId(cID, cSEC) {
-  const AppExistInDBsql =
-    "SELECT * FROM applications WHERE client_id=? and client_secret=?";
-  const params = [cID, cSEC];
-  const result = await dbQuery(AppExistInDBsql, params);
-  if (!result || result == null) {
-    console.log("Error fetching App Id");
-    return null;
-  } else {
-    response = JSON.parse(JSON.stringify(result));
-    var appId = response[0].application_id;
-    return appId;
-  }
-}
-
-async function getUserId(token) {
+async function getUserId(token, cb) {
   const UserExistsql = "SELECT user_id FROM user_applications WHERE token = ?";
   const params = [token];
   const result = await dbQuery(UserExistsql, params);
-  if (!result || result == null) {
+  if (!result || result == null || result == "") {
     console.log("Error fetching App Id");
-    return null;
+    cb(false);
   } else {
     response = JSON.parse(JSON.stringify(result));
     var UserId = response[0].user_id;
-    return UserId;
+    console.log("log", "fetched userId from token:" + UserId);
+    cb(UserId);
   }
 }
 
 async function getEtherpadGroupFromNormalGroup(id, cb) {
   var getMapperSql = "Select * from store where store.key = ?";
-  var result = await dbQuery(getMapperSql, ["mapper2group:" + id]);
+  var result = await dbQuery2(getMapperSql, ["mapper2group:" + id]);
   //var getMapperQuery = connection2.query(getMapperSql, ["mapper2group:" + id]);
   // getMapperQuery.on('error', mySqlErrorHandler);
   // getMapperQuery.on('result', function (mapper) {
   //     cb(mapper.value.replace(/"/g, ''));
   // });
-  if (!result || result == null) {
+  if (!result || result == null || result == "") {
     console.log("Error getEtherpadGroupFromNormalGroup");
     return null;
   } else {
-    response = JSON.parse(JSON.stringify(result));
-    cb(response[0].value.replace(/"/g, ""));
+    stringr = JSON.parse(JSON.stringify(result));
+    console.log(stringr);
+    cb(stringr[0].value.replace(/"/g, ""));
   }
 }
 
@@ -194,15 +167,57 @@ async function getPadsSettings(cb) {
 }
 
 function getGroup(groupId, cb) {
-  log("debug", "getGroup");
+  console.log("debug", "getGroup");
   var sql = "Select * from etherpad.groups where groupID = ?";
   getOneValueSql(sql, [groupId], cb);
 }
 
 function getUser(userId, cb) {
-  log("debug", "getUser");
+  console.log("debug", "getUser");
   var sql = "Select * from etherpad.user where userID = ?";
   getOneValueSql(sql, [userId], cb);
+}
+
+function sendError(error, code, res) {
+  var data = {};
+  data.success = false;
+  data.error = error;
+  console.log("error", error);
+  res.send({
+    code: code,
+    message: error,
+    data: {},
+  });
+}
+
+function addPadToEtherpad(padName, groupId, cb) {
+  getEtherpadGroupFromNormalGroup(groupId, function (group) {
+    params = {
+      groupID: group,
+      padName: padName,
+      text: "Insert default text here",
+    };
+    etherpad.createGroupPad(params, function (err) {
+      if (err) {
+        console.log("error", "something went wrong while adding a group pad");
+        console.log("error", err);
+      } else {
+        var padID = params.groupID + "$" + params.padName;
+        args = {
+          padID: padID,
+        };
+        etherpad.setPublicStatus(args, function (err, data) {
+          if (err) {
+            console.error("Error: " + err.message);
+          } else {
+            console.log("set public: " + data.message);
+            console.log("debug", "Pad added");
+            cb(true);
+          }
+        });
+      }
+    });
+  });
 }
 
 module.exports = {
@@ -237,40 +252,6 @@ module.exports = {
     }
   },
 
-  // async TokenGen(req, res) {
-  //     args = {
-  //         cID: req.body.cID,
-  //         cSEC: req.body.cSEC,
-  //         email: req.body.email,
-  //         name: req.body.name
-  //     }
-  //     var AppExistInDBsql = 'SELECT * FROM applications WHERE client_id=? and client_secret=?';
-  //     var params = [args.cID, args.cSEC];
-  //     const result = await dbQuery(AppExistInDBsql, params);
-  //     response = JSON.parse(JSON.stringify(result))
-  //     if (!result || result == null) {
-  //         console.log(err);
-  //     } else {
-  //         var token = randomString(21);
-  //         var appId = response[0].application_id;
-  //         var saveTokenInAppUserssql = 'INSERT INTO user_applications (application_id, token) VALUES (?,?)';
-  //         var params2 = [appId, token]
-  //         const result2 = await dbQuery(saveTokenInAppUserssql, params2);
-  //         if (!result2 || result2 == null) {
-  //             console.log(err);
-  //         } else {
-
-  //             data = {
-  //                 user_id: result2.insertId,
-  //                 application_id: appId,
-  //                 token: token
-  //             }
-  //             console.log("success");
-  //             res.send(data);
-  //         }
-  //     }
-  // }
-
   async RegisterUser(req, res) {
     args = {
       name: req.body.name,
@@ -286,42 +267,30 @@ module.exports = {
       async function (exists, appId) {
         if (exists) {
           if (emailRegex.test(args.email)) {
-            registerUserSql = "INSERT INTO user(name,email,confirmed) VALUES(?,?,1)";
+            registerUserSql =
+              "INSERT INTO user(name,email,confirmed) VALUES(?,?,1)";
             var params = [args.name, args.email];
 
-            userExists(args.name,args.email,appId, function(exists){
-              if(!exists)
-              {
-                console.log(false)
-                res.send(false)
-              }else{
-                console.log(true)
-                res.send(true)
+            userExists(args.email, appId, async function (exists) {
+              if (!exists) {
+                const newUserResult = await dbQuery(registerUserSql, params);
+                // console.log(newUserResult);
+                tokenGen(newUserResult.insertId, appId, function (token) {
+                  res.status(201).send({
+                    code: 201,
+                    message: "Registration Successful",
+                    data: { token: token, userID: newUserResult.insertId },
+                  });
+                });
+              } else {
+                // console.log(true)
+                res.status(409).send({
+                  code: 409,
+                  message: `user already exists for app id = ${appId}`,
+                  data: {},
+                });
               }
-            })
-
-            // const verifyUserExists = await userExists(args.name, args.email,appId);
-            // console.log("verifyUserExists = " +verifyUserExists)
-            // if (!verifyUserExists) {
-            //   var registerUserQuery = await dbQuery(registerUserSql, params);
-            //   tokenGen(
-            //     registerUserQuery.insertId,
-            //     appId,
-            //     async function (token) {
-            //       // console.log(token)
-
-            //       res.status(201).send({
-            //         code: 201,
-            //         message: "Registration Successful",
-            //         data: { token: token },
-            //       });
-            //     }
-            //   );
-            // } else {
-            //   res
-            //     .status(409)
-            //     .send({ code: 409, message: "User already exists", data: {} });
-            // }
+            });
           } else {
             res
               .status(400)
@@ -336,91 +305,8 @@ module.exports = {
         }
       }
     );
-
-    // if (emailRegex.test(args.email)) {
-    //     registerUserSql = 'INSERT INTO user(name,email) VALUES(?,?)'
-    //     var params = [args.name, args.email]
-    //     const verifyUserExists = await userExists(args.name, args.email)
-
-    //     if (!verifyUserExists) {
-    //         var registerUserQuery = await dbQuery(registerUserSql, params)
-    //         res.send(registerUserQuery)
-    //     } else {
-    //         // console.log("User already exists")
-    //         res.send("User already exists")
-    //     }
-
-    // } else {
-    //     res.send("Invalid Email")
-    // }
-    // new formidable.IncomingForm().parse(req, function (err, fields) {
-    //     userEmail = fields.userEmail;
-    //     userName = fields.name;
-    //     cID = req.body.cID;
-    //     cSEC = req.body.cSEC;
-    //     var AppId = getAppId(cID, cSEC);
-    //     var Ergebnis = userEmail.toString().match(/[a-zA-Z0-9._-]+@[a-zA-Z0-9-]+.[a-zA-Z]{2,4}/);
-    //     if (Ergebnis == null) {
-    //         sendError('Email is not valid!', res);
-    //         return
-    //     }
-    //     var existUser = "SELECT * from user where etherpad.user.email = ? and user.appId = ?";
-    //     existValueInDatabase(existUser, [userEmail, appId], function (exists) {
-    //         if (exists) {
-    //             sendError('An account already exists with this Email address', res);
-    //             return
-
-    //         } else {
-    //             var addUserSql = "";
-    //             TokenGen(req.body.cID, req.body.SEC, async function (token) {
-    //                 // columns: userID, name, email, token, appId, confirmed, active
-    //                 addUserSql = "INSERT INTO user VALUES(null,?, ?, ?, ? ,null ,?, ?, 0)";
-    //                 var newUser = await dbQuery(addUserSql, [userName, userEmail, token, appId]);
-    //                 if (newUser) {
-    //                     let mappedUser = addUserToEtherpad(newUser.insertId);
-    //                     var data = {};
-    //                     data.success = true;
-    //                     data.error = false;
-    //                     data.token = token
-    //                     res.send(data);
-    //                 }
-    //                 // addUserQuery.on('error', mySqlErrorHandler);
-    // addUserQuery.on('result', function (newUser) {
-    //     connection.pause();
-    //     //addUserToEtherpad(newUser.insertId, function (cb) {
-    //     let mappedUser = addUserToEtherpad(newUser.insertId);
-    // });
-    // addUserQuery.on('end', function () {
-    //     var data = {};
-    //     data.success = true;
-    //     data.error = false;
-    //     res.send(data);
-    //     //cb(true);
-    // });
-    // })
-    // createSalt(function (salt) {
-    //     getPassword(function (consString) {
-    //         /* Fields in User table are:userID, name, email, password, confirmed, FullName, confirmationString, salt, active*/
-    //         addUserSql = "INSERT INTO User VALUES(null,?, ?,null, 0 ,null ,?, ?, 0)";
-    //         var addUserQuery = connection.query(addUserSql, [userEmail, userEmail, consString, salt]);
-    //         addUserQuery.on('error', mySqlErrorHandler);
-    //         addUserQuery.on('result', function (newUser) {
-    //             connection.pause();
-    //             //addUserToEtherpad(newUser.insertId, function (cb) {
-    //             let mappedUser = addUserToEtherpad(newUser.insertId);
-    //         });
-    //         addUserQuery.on('end', function () {
-    //             var data = {};
-    //             data.success = true;
-    //             data.error = false;
-    //             res.send(data);
-    //             //cb(true);
-    //         });
-    //     });
-    // });
   },
 
-  //still working on the queries and table structuring for this
   async createGroup(req, res) {
     userAuthenticated(req, function (authenticated) {
       var data = {};
@@ -429,65 +315,92 @@ module.exports = {
           groupName: req.body.name,
           token: req.body.token,
         };
-        if (!fields.groupName) {
-          sendError("Group Name not defined", res);
+        if (!args.groupName || args.groupName == "") {
+          sendError("Group Name not defined", 400, res);
           return;
         }
-        userId = getUserId(args.token);
-        if (userId != null || userId != "") {
-          var existGroupSql = "SELECT * from etherpad.groups WHERE name = ?";
-          getOneValueSql(
-            existGroupSql,
-            [args.groupName],
-            async function (found) {
-              if (found) {
-                sendError("Group already exists", res);
+        getUserId(args.token, async function (userId) {
+          if (userId != null && userId != "" && userId != false) {
+            getAppId(args.token, async function (appId) {
+              if (appId == 0) {
+                sendError("Application not found", 400, res);
                 return;
               } else {
-                var addGroupSql = "INSERT INTO etherpad.groups VALUES(null, ?)";
-                var group = await dbQuery(addGroupSql, [args.groupName]);
-                data.groupid = group.insertId;
-                var addUserGroupSql =
-                  "INSERT INTO etherpad.usergroup Values(?,?,1)";
-                var addUserGroupQuery = await dbQuery(addUserGroupSql, [
-                  userId,
-                  group.insertId,
-                ]);
-                if (addUserGroupQuery) {
-                  etherpad.createGroupIfNotExistsFor(
-                    group.insertId.toString(),
-                    function (err, val) {
-                      if (err) {
-                        log("error", "failed to createGroupIfNotExistsFor");
+                var existGroupSql =
+                  "SELECT * from etherpad.groups WHERE name = ? AND application_id = ?";
+                getOneValueSql(
+                  existGroupSql,
+                  [args.groupName, appId],
+                  async function (found) {
+                    if (found) {
+                      sendError("Group already exists", 400, res);
+                      return;
+                    } else {
+                      var addGroupSql =
+                        "INSERT INTO etherpad.groups VALUES(null, ?);";
+                      var group = await dbQuery(addGroupSql, [args.groupName]);
+                      data.groupid = group.insertId;
+                      console.log(
+                        "log",
+                        "Inserted group Id: " + group.insertId
+                      );
+                      var addUserGroupSql =
+                        "INSERT INTO usergroup VALUES(?, ?, 1)";
+                      console.log("log", "using userId:" + userId);
+                      var addUserGroupQuery = await dbQuery(addUserGroupSql, [
+                        userId,
+                        group.insertId,
+                      ]);
+                      if (addUserGroupQuery) {
+                        params = {
+                          groupMapper: group.insertId.toString(),
+                        };
+                        etherpad.createGroupIfNotExistsFor(
+                          params,
+                          function (err, val) {
+                            if (err) {
+                              console.log(
+                                "error",
+                                "failed to createGroupIfNotExistsFor: " +
+                                  err.message
+                              );
+                              res.send({
+                                code: 400,
+                                message: "Failed: Etherpad Error",
+                                data: {},
+                              });
+                            } else {
+                              data.success = true;
+                              data.error = null;
+                              data.EtherpadGroupId = val.groupID;
+                              res.send({
+                                code: 201,
+                                message: "Created",
+                                data: data,
+                              });
+                            }
+                          }
+                        );
                       } else {
-                        data.success = true;
-                        data.error = null;
-                        data.groupId = val.groupID;
                         res.send({
-                          code: 201,
-                          message: "Created",
-                          data: { data },
+                          code: "404",
+                          message: "error addusergroupQuery",
+                          data: {},
                         });
                       }
                     }
-                  );
-                } else {
-                  res.send({
-                    code: "404",
-                    message: "error addusergroupQuery",
-                    data: {},
-                  });
-                }
+                  }
+                );
               }
-            }
-          );
-        } else {
-          res.send({
-            code: "404",
-            message: "User does not exist for provided token",
-            data: {},
-          });
-        }
+            });
+          } else {
+            res.send({
+              code: "404",
+              message: "User does not exist for provided token",
+              data: {},
+            });
+          }
+        });
       } else {
         res.send({ code: "401", message: "You are not logged in!!", data: {} });
       }
@@ -498,10 +411,10 @@ module.exports = {
     userAuthenticated(req, function (authenticated) {
       if (authenticated) {
         if (!req.body.groupId) {
-          sendError("Group-Id not defined", res);
+          sendError("Group-Id not defined", 400, res);
           return;
         } else if (!req.body.padName) {
-          sendError("Pad Name not defined", res);
+          sendError("Pad Name not defined", 400, res);
           return;
         }
         args = {
@@ -515,21 +428,28 @@ module.exports = {
           [args.groupId, args.padName],
           async function (found) {
             if (found || args.padName.length == 0) {
-              sendError("Pad already Exists", res);
+              sendError("Pad already Exists", 400, res);
             } else {
               var addPadToGroupSql = "INSERT INTO GroupPads VALUES(?, ?)";
               var addPadToGroupQuery = await dbQuery(addPadToGroupSql, [
-                fields.groupId,
-                fields.padName,
+                args.groupId,
+                args.padName,
               ]);
               if (addPadToGroupQuery) {
-                var data = {};
-                data.success = true;
-                data.error = null;
-                res.send({
-                  code: "201",
-                  message: "addPadToGroups success",
-                  data: { data },
+                addPadToEtherpad(args.padName, args.groupId, function (added) {
+                  if (added) {
+                    var data = {};
+                    data.success = true;
+                    data.error = null;
+                    res.send({
+                      code: "201",
+                      message: "addPadToGroups success",
+                      data: data,
+                    });
+                  } else {
+                    sendError("Etherpad add GroupPad error", 400, res);
+                    return;
+                  }
                 });
               } else {
                 res.send({
@@ -551,7 +471,7 @@ module.exports = {
     userAuthenticated(req, function (authenticated) {
       if (authenticated) {
         if (!req.body.groupId) {
-          sendError("Group-Id not defined", res);
+          sendError("Group-Id not defined", 400, res);
           return;
         }
         args = {
@@ -559,60 +479,68 @@ module.exports = {
           token: req.body.token,
           padname: req.body.padName,
         };
-        userId = getUserId(args.token);
-        if (userId) {
-          var userInGroupSql =
-            "SELECT * from UserGroup where UserGroup.userId = ? and UserGroup.groupID= ?";
-          getOneValueSql(
-            userInGroupSql,
-            [userId, args.groupId],
-            function (found) {
-              if (found) {
-                getEtherpadGroupFromNormalGroup(args.groupId, function (group) {
-                  (async () => {
-                    let etherpad_author = await addUserToEtherpad(userId);
-                    console.log(etherpad_author); // {"metadata": "for: test.png"}
-                    //console.log("ETHERPAD AUTHOR " + etherpad_author);
-                    // addUserToEtherpad(req.session.userId, function (etherpad_author) {
-                    if (etherpad_author) {
-                      //console.log("etherpad autoh is : " + etherpad_author.authorID);
+        getUserId(args.token, async function (userId) {
+          if (userId) {
+            var userInGroupSql =
+              "SELECT * from UserGroup where UserGroup.userId = ? and UserGroup.groupID= ?";
+            getOneValueSql(
+              userInGroupSql,
+              [userId, args.groupId],
+              function (found) {
+                if (found) {
+                  getEtherpadGroupFromNormalGroup(
+                    args.groupId,
+                    function (group) {
                       (async () => {
-                        let session = await etherpad.createSession(
-                          group,
-                          etherpad_author.authorID,
-                          Date.now() + 7200000
-                        );
-                        //sessionManager.createSession(group, etherpad_author.authorID, Date.now() +
-                        var data = {};
-                        data.success = true;
-                        data.session = session.sessionID;
-                        data.group = group;
-                        // data.username = req.session.username,
-                        data.pad_name = args.padname;
-                        data.padID = group + "$" + args.padname;
-                        // data.location = fields.location;
-                        res.send({
-                          code: 201,
-                          message: "Session created",
-                          data: { data },
-                        });
-                        console.log(data);
+                        let etherpad_author = await addUserToEtherpad(userId);
+                        console.log(etherpad_author); // {"metadata": "for: test.png"}
+                        //console.log("ETHERPAD AUTHOR " + etherpad_author);
+                        // addUserToEtherpad(req.session.userId, function (etherpad_author) {
+                        if (etherpad_author) {
+                          //console.log("etherpad autoh is : " + etherpad_author.authorID);
+                          (async () => {
+                            let session = await etherpad.createSession(
+                              group,
+                              etherpad_author.authorID,
+                              Date.now() + 7200000
+                            );
+                            //sessionManager.createSession(group, etherpad_author.authorID, Date.now() +
+                            var data = {};
+                            data.success = true;
+                            data.session = session.sessionID;
+                            data.group = group;
+                            // data.username = req.session.username,
+                            data.pad_name = args.padname;
+                            data.padID = group + "$" + args.padname;
+                            // data.location = fields.location;
+                            res.send({
+                              code: 201,
+                              message: "Session created",
+                              data: { data },
+                            });
+                            console.log(data);
+                          })();
+                        }
                       })();
                     }
-                  })();
-                });
-              } else {
-                res.send({ code: 404, message: "User not in Group", data: {} });
+                  );
+                } else {
+                  res.send({
+                    code: 404,
+                    message: "User not in Group",
+                    data: {},
+                  });
+                }
               }
-            }
-          );
-        } else {
-          res.send({
-            code: 404,
-            message: "User doesnt exist for given token",
-            data: {},
-          });
-        }
+            );
+          } else {
+            res.send({
+              code: 404,
+              message: "User doesnt exist for given token",
+              data: {},
+            });
+          }
+        });
       } else {
         res.send({ code: 401, message: "You are not logged in", data: {} });
       }
@@ -645,10 +573,10 @@ module.exports = {
                     userid: req.session.userId,
                     username: req.session.username,
                     baseurl: req.session.baseurl,
-                    groupID: req.params.groupID,
+                    groupID: req.body.groupID,
                     groupName: currGroup[0].name,
                     settings: settings,
-                    padurl: req.session.baseurl + "/p/" + req.params.padID,
+                    padurl: req.session.baseurl + "/p/" + req.body.padID,
                   };
                   // res.send(eejs
                   //     .require("ep_maadix/templates/pad.ejs",
@@ -695,7 +623,6 @@ module.exports = {
             });
           });
         } else {
-          // res.redirect("/login")
           res.send({ code: 401, message: "You are not logged in", data: {} });
         }
       });
