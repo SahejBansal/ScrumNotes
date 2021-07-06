@@ -112,7 +112,7 @@ async function getOneValueSql(sql, params, cb) {
     const result = await dbQuery(sql, params);
     if (!result || result == null || result == "") {
         console.log("error", "getOneValueSql error");
-        cb(false);
+        cb(false, result);
     } else {
         console.log("log", "getoneValueSql Result:" + result);
         cb(true, result);
@@ -364,8 +364,8 @@ module.exports = {
                       return;
                     } else {
                       var addGroupSql =
-                        "INSERT INTO etherpad.groups VALUES(null, ?);";
-                      var group = await dbQuery(addGroupSql, [args.groupName]);
+                        "INSERT INTO etherpad.groups (name, application_id) VALUES(?, ?);";
+                      var group = await dbQuery(addGroupSql, [args.groupName, appId]);
                       data.groupid = group.insertId;
                       console.log(
                         "log",
