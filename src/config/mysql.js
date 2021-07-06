@@ -4,7 +4,7 @@ module.exports = async () => {
         host: 'localhost',
         user: 'etherpad',
         password: 'etherpad',
-        database: 'etherpad_lite_db'
+        database: 'etherpad'
     });
 
     const connection2 = await mysql.createConnection({
