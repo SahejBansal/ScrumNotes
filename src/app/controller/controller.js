@@ -14,7 +14,7 @@ function randomString(size) {
 
 async function checkClientAndSecret(cID, cSEC, cb) {
   const clientIdAndClientSecretQuery =
-    "SELECT * FROM applications WHERE client_id=? AND client_secret=?";
+    "SELECT * FROM applications WHERE clientId=? AND clientSecret=?";
   const clientIdAndClientSecretParams = [cID, cSEC];
   const clientIdAndClientSecretResult = await dbQuery(
     clientIdAndClientSecretQuery,
@@ -256,7 +256,7 @@ module.exports = {
     var cID = randomString(21);
     var cSEC = randomString(21);
     var saveInDBsql =
-      "INSERT INTO applications (name, url, client_id, client_secret) VALUES (?,?,?,?)";
+      "INSERT INTO applications (name, url, clientId, clientSecret) VALUES (?,?,?,?)";
     var params = [args.name, args.url, cID, cSEC];
     const result = await dbQuery(saveInDBsql, params);
     // var getSavedsql = `SELECT * FROM applications WHERE name=?`;
@@ -283,14 +283,14 @@ module.exports = {
     args = {
       name: req.body.name,
       email: req.body.email,
-      client_id: req.body.client_id,
-      client_secret: req.body.client_secret,
+      clientId: req.body.clientId,
+      clientSecret: req.body.clientSecret,
     };
     const emailRegex = /^\w+([-+.']\w+)*@\w+([-.]\w+)*\.\w+([-.]\w+)*$/;
 
     checkClientAndSecret(
-      args.client_id,
-      args.client_secret,
+      args.clientId,
+      args.clientSecret,
       async function (exists, appId) {
         if (exists) {
           if (emailRegex.test(args.email)) {
@@ -325,7 +325,7 @@ module.exports = {
           }
         } else {
           res.status(404).send({
-            code: 400,
+            code: 404,
             message: "Application ID does not exist.",
             data: {},
           });
@@ -576,8 +576,8 @@ module.exports = {
                 if (authenticated) {
                     args = {
                         token: req.body.token,
-                        groupID: req.body.groupID,
-                        padID: req.body.padID,
+                        groupId: req.body.groupId,
+                        padId: req.body.padId,
                     };
                     getUserId(args.token, async function (userId) {
                         getGroup(args.groupID, function (found, currGroup) {
