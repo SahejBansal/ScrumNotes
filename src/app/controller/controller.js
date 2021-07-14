@@ -11,7 +11,7 @@ const etherpad = api.connect({
 setInterval(function () {
   await dbQuery(`SELECT 1`, []);
   await dbQuery2(`SELECT 1`, []);
-})
+}, 3600000)
 
 function randomString(size) {
   return Crypto.randomBytes(size).toString("base64").slice(0, size);
