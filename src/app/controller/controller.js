@@ -8,7 +8,7 @@ const etherpad = api.connect({
   port: 9001,
 });
 
-setInterval(function () {
+setInterval(async function () {
   await dbQuery(`SELECT 1`, []);
   await dbQuery2(`SELECT 1`, []);
 }, 3600000)
@@ -615,27 +615,28 @@ module.exports = {
             token: req.body.token,
             groupID: req.body.groupID,
             padID: req.body.padID,
+            sessionID: req.body.sessionID //Etherpad PadID not padName
           };
           getUserId(args.token, async function (userId) {
             getGroup(args.groupID, function (found, currGroup) {
               getUser(userId, function (found, currUser) {
                 var padID = args.padID;
                 var slice = padID.indexOf("$");
-                padID = padID.slice(slice + 1, padID.length);
+                var padName = padID.slice(slice + 1, padID.length); //Reassign to Pad Name
                 var padsql = "select * from GroupPads where PadName = ?";
-                existValueInDatabase(padsql, [padID], function (found) {
+                existValueInDatabase(padsql, [padName], function (found) {
                   var render_args;
                   if (found && currUser && currGroup && currGroup.length > 0) {
                     render_args = {
                       errors: [],
-                      padname: padID,
+                      padname: padName,
                       userid: userId,
                       // username: req.session.username,
                       // baseurl: req.session.baseurl,
                       groupID: req.body.groupID,
                       groupName: currGroup[0].name,
                       settings: settings,
-                      padurl: "localhost:9001" + "/p/" + req.body.padID,
+                      padurl: `localhost:9001/p/auth_session?sessionID="${req.body.sessionID}"&padName="${padName}"`,
                     };
                     res.send({
                       code: 201,
