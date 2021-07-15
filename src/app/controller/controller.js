@@ -1,5 +1,5 @@
 const Crypto = require("crypto");
-const { exists } = require("fs");
+// const { exists } = require("fs");
 
 api = require("etherpad-lite-client");
 const etherpad = api.connect({
@@ -42,17 +42,17 @@ async function tokenGen(userId, appId, cb) {
 }
 
 async function getAppId(token, cb) {
-  console.log("DEBUG", "getting AppID");
+  // console.log("DEBUG", "getting AppID");
   var AppExistInDBsql = "SELECT * FROM user_applications WHERE token=?";
   var params = [token];
   const result = await dbQuery(AppExistInDBsql, params);
   if (!result || result == null) {
-    console.log("Error fetching App Id");
+    // console.log("Error fetching App Id");
     cb(0);
   } else {
     response = JSON.parse(JSON.stringify(result));
     var appId = response[0].application_id;
-    console.log("log", "fetched appId from token:" + appId);
+    // console.log("log", "fetched appId from token:" + appId);
     cb(appId);
   }
 }
@@ -74,7 +74,7 @@ async function userExists(email, appId, cb) {
         userInApplicationSql,
         params
       );
-      console.log(userInApplicationResult);
+      // console.log(userInApplicationResult);
 
       if (Object.keys(userInApplicationResult).length !== 0) {
         // console.log(flag+"one")
@@ -89,7 +89,7 @@ async function userExists(email, appId, cb) {
 }
 
 var userAuthenticated = function (req, cb) {
-  console.log("debug", "userAuthenticated");
+  // console.log("debug", "userAuthenticated");
   if (req.body.token) {
     cb(true);
   } else {
@@ -100,7 +100,7 @@ var userAuthenticated = function (req, cb) {
 async function existValueInDatabase(sql, params, cb) {
   const result = await dbQuery(sql, params);
   if (!result || result == null) {
-    console.log("error", "existValueInDatabase error, sql: " + sql);
+    // console.log("error", "existValueInDatabase error, sql: " + sql);
     cb(false);
   } else {
     cb(true);
@@ -108,13 +108,13 @@ async function existValueInDatabase(sql, params, cb) {
 }
 
 async function getOneValueSql(sql, params, cb) {
-    console.log("debug", "getOneValueSql:" + sql);
+    // console.log("debug", "getOneValueSql:" + sql);
     const result = await dbQuery(sql, params);
     if (!result || result == null || result == "") {
-        console.log("error", "getOneValueSql error");
+        // console.log("error", "getOneValueSql error");
         cb(false, result);
     } else {
-        console.log("log", "getoneValueSql Result:" + result);
+        // console.log("log", "getoneValueSql Result:" + result);
         cb(true, result);
     }
 }
@@ -124,12 +124,12 @@ async function getUserId(token, cb) {
   const params = [token];
   const result = await dbQuery(UserExistsql, params);
   if (!result || result == null || result == "") {
-    console.log("Error fetching App Id");
+    // console.log("Error fetching App Id");
     cb(false);
   } else {
     response = JSON.parse(JSON.stringify(result));
     var UserId = response[0].user_id;
-    console.log("log", "fetched userId from token:" + UserId);
+    // console.log("log", "fetched userId from token:" + UserId);
     cb(UserId);
   }
 }
@@ -139,7 +139,7 @@ async function getUserObj(userId, cb) {
     const params = [userId];
     const result = await dbQuery(UserNameSql, params);
     if (!result || result == null || result == "") {
-        console.log("Error fetching App Id");
+        // console.log("Error fetching App Id");
         cb(false);
     } else {
         response = JSON.parse(JSON.stringify(result));
@@ -158,11 +158,11 @@ async function getEtherpadGroupFromNormalGroup(id, cb) {
   //     cb(mapper.value.replace(/"/g, ''));
   // });
   if (!result || result == null || result == "") {
-    console.log("Error getEtherpadGroupFromNormalGroup");
+    // console.log("Error getEtherpadGroupFromNormalGroup");
     return null;
   } else {
     stringr = JSON.parse(JSON.stringify(result));
-    console.log(stringr);
+    // console.log(stringr);
     cb(stringr[0].value.replace(/"/g, ""));
   }
 }
@@ -175,10 +175,10 @@ function addUserToEtherpad(userId, userName, cb) {
     var createdAuthor;
     etherpad.createAuthorIfNotExistsFor(params, function (err, data) {
         if (err) {
-            console.error('Error: ' + err.message);
+            // console.error('Error: ' + err.message);
             throw new Error("there was an error creating user");
         } else {
-            console.log('Author created: ' + data.authorID);
+            // console.log('Author created: ' + data.authorID);
             createdAuthor = data;
             cb(createdAuthor)
         }
@@ -194,13 +194,13 @@ async function getPadsSettings(cb) {
 }
 
 function getGroup(groupId, cb) {
-  console.log("debug", "getGroup");
+  // console.log("debug", "getGroup");
   var sql = "Select * from etherpad.groups where groupID = ?";
   getOneValueSql(sql, [groupId], cb);
 }
 
 function getUser(userId, cb) {
-  console.log("debug", "getUser");
+  // console.log("debug", "getUser");
   var sql = "Select * from etherpad.user where userID = ?";
   getOneValueSql(sql, [userId], cb);
 }
@@ -209,7 +209,7 @@ function sendError(error, code, res) {
   var data = {};
   data.success = false;
   data.error = error;
-  console.log("error", error);
+  // console.log("error", error);
   res.send({
     code: code,
     message: error,
@@ -226,8 +226,8 @@ function addPadToEtherpad(padName, groupId, cb) {
     };
     etherpad.createGroupPad(params, function (err) {
       if (err) {
-        console.log("error", "something went wrong while adding a group pad");
-        console.log("error", err);
+        // console.log("error", "something went wrong while adding a group pad");
+        // console.log("error", err);
       } else {
         var padID = params.groupID + "$" + params.padName;
         args = {
@@ -235,10 +235,10 @@ function addPadToEtherpad(padName, groupId, cb) {
         };
         etherpad.setPublicStatus(args, function (err, data) {
           if (err) {
-            console.error("Error: " + err.message);
+            // console.error("Error: " + err.message);
           } else {
-            console.log("set public: " + data.message);
-            console.log("debug", "Pad added");
+            // console.log("set public: " + data.message);
+            // console.log("debug", "Pad added");
             cb(true);
           }
         });
@@ -264,16 +264,15 @@ module.exports = {
     // response = JSON.parse(JSON.stringify(result2))
     // vals = response[0];
     if (!result || result == null) {
-      console.log(err);
+      // console.log(err);
     } else {
-      console.log("success");
-      res.send({
+      // console.log("success");
+      res.status(201).send({
         code: 201,
-        message: "success",
+        message: "Application created.",
         data: {
           cID: cID,
           cSEC: cSEC,
-          id: result.insertId,
         },
       });
     }
@@ -311,9 +310,9 @@ module.exports = {
                 });
               } else {
                 // console.log(true)
-                res.status(409).send({
-                  code: 409,
-                  message: `user already exists for app id = ${appId}`,
+                res.status(401).send({
+                  code: 401,
+                  message: `user already exists for this email`,
                   data: {},
                 });
               }
@@ -367,13 +366,13 @@ module.exports = {
                         "INSERT INTO etherpad.groups (name, application_id) VALUES(?, ?);";
                       var group = await dbQuery(addGroupSql, [args.groupName, appId]);
                       data.groupid = group.insertId;
-                      console.log(
-                        "log",
-                        "Inserted group Id: " + group.insertId
-                      );
+                      // console.log(
+                      //   "log",
+                      //   "Inserted group Id: " + group.insertId
+                      // );
                       var addUserGroupSql =
                         "INSERT INTO usergroup VALUES(?, ?, 1)";
-                      console.log("log", "using userId:" + userId);
+                      // console.log("log", "using userId:" + userId);
                       var addUserGroupQuery = await dbQuery(addUserGroupSql, [
                         userId,
                         group.insertId,
@@ -386,12 +385,12 @@ module.exports = {
                           params,
                           function (err, val) {
                             if (err) {
-                              console.log(
-                                "error",
-                                "failed to createGroupIfNotExistsFor: " +
-                                  err.message
-                              );
-                              res.send({
+                              // console.log(
+                              //   "error",
+                              //   "failed to createGroupIfNotExistsFor: " +
+                              //     err.message
+                              // );
+                              res.status(400).send({
                                 code: 400,
                                 message: "Failed: Etherpad Error",
                                 data: {},
@@ -400,16 +399,16 @@ module.exports = {
                               data.success = true;
                               data.error = null;
                               data.EtherpadGroupId = val.groupID;
-                              res.send({
+                              res.status(201).send({
                                 code: 201,
-                                message: "Created",
+                                message: "Group created",
                                 data: data,
                               });
                             }
                           }
                         );
                       } else {
-                        res.send({
+                        res.status(404).send({
                           code: "404",
                           message: "error addusergroupQuery",
                           data: {},
@@ -421,7 +420,7 @@ module.exports = {
               }
             });
           } else {
-            res.send({
+            res.status(404).send({
               code: "404",
               message: "User does not exist for provided token",
               data: {},
@@ -429,7 +428,7 @@ module.exports = {
           }
         });
       } else {
-        res.send({ code: "401", message: "You are not logged in!!", data: {} });
+        res.status(401).send({ code: "401", message: "You are not logged in", data: {} });
       }
     });
   },
@@ -465,7 +464,7 @@ module.exports = {
                                         var data = {};
                                         data.success = true;
                                         data.error = null;
-                                        res.send({
+                                        res.status(201).send({
                                             code: "201",
                                             message: "addPadToGroups success",
                                             data: data
@@ -476,7 +475,7 @@ module.exports = {
                                     }
                                 })
                             } else {
-                                res.send({
+                                res.status(400).send({
                                     code: "400",
                                     message: "error addPadToGroupQuery",
                                     data: {}
@@ -486,7 +485,7 @@ module.exports = {
                     }
                 );
             } else {
-                res.send({ code: "401", message: "You are not logged in", data: {} });
+                res.status(401).send({ code: "401", message: "You are not logged in", data: {} });
             }
         });
     },
@@ -525,10 +524,10 @@ module.exports = {
                                                 }
                                                 etherpad.createSession(sessionParams, function (err, session) {
                                                     if (err) {
-                                                        console.error('Error: ' + err.message);
+                                                        // console.error('Error: ' + err.message);
                                                     }
                                                     else {
-                                                        console.log('Session created: ' + session.sessionID);
+                                                        // console.log('Session created: ' + session.sessionID);
                                                         var data = {};
                                                         data.success = true;
                                                         data.session = session.sessionID;
@@ -538,25 +537,25 @@ module.exports = {
                                                         data.pad_name = args.padname;
                                                         data.padID = group + "$" + args.padname;
                                                         // data.location = fields.location;
-                                                        res.send({
+                                                        res.status(201).send({
                                                             code: 201,
                                                             message: "Session created",
                                                             data: data,
                                                         });
-                                                        console.log(data);
+                                                        // console.log(data);
                                                     }
                                                 });
                                             }
                                         })
                                     });
                                 } else {
-                                    res.send({ code: 404, message: "User not in Group", data: {} });
+                                    res.status(404).send({ code: 404, message: "User not in Group", data: {} });
                                 }
                             }
                             );
                         })
                     } else {
-                        res.send({
+                        res.status(404).send({
                             code: 404,
                             message: "User doesnt exist for given token",
                             data: {},
@@ -564,7 +563,7 @@ module.exports = {
                     }
                 });
             } else {
-                res.send({ code: 401, message: "You are not logged in", data: {} });
+                res.status(401).send({ code: 401, message: "You are not logged in", data: {} });
             }
         });
     },
@@ -600,9 +599,9 @@ module.exports = {
                                             settings: settings,
                                             padurl: "localhost:9001" + "/p/" + req.body.padID,
                                         };
-                                        res.send({
+                                        res.status(201).send({
                                             code: 201,
-                                            message: "success",
+                                            message: "Get pad URL success",
                                             data: render_args
                                         });
                                     } else if (
@@ -623,7 +622,7 @@ module.exports = {
                                             settings: settings,
                                             padurl: false,
                                         };
-                                        res.send({
+                                        res.status(402).send({
                                             code: 402,
                                             message: "error: pad does not exist",
                                             data: render_args
@@ -641,7 +640,7 @@ module.exports = {
                                             settings: settings,
                                             padurl: false,
                                         };
-                                        res.send({
+                                        res.status(400).send({
                                             code: 400,
                                             message: "error",
                                             data: render_args
@@ -653,7 +652,7 @@ module.exports = {
                     });
 
                 } else {
-                    res.send({ code: 401, message: "You are not logged in", data: {} });
+                    res.status(401).send({ code: 401, message: "You are not logged in", data: {} });
                 }
             });
         });
