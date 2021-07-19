@@ -191,7 +191,7 @@ function addUserToEtherpad(userId, userName, cb) {
 }
 
 async function getPadsSettings(cb) {
-  var getSettingsSql = "Select * from Settings";
+  var getSettingsSql = "Select * from settings";
   var result = await dbQuery(getSettingsSql);
   var settings = {};
   settings[result.key] = result.value;
@@ -494,7 +494,7 @@ module.exports = {
             if (found || args.padName.length == 0) {
               sendError("Pad already Exists", 400, res);
             } else {
-              var addPadToGroupSql = "INSERT INTO GroupPads VALUES(?, ?)";
+              var addPadToGroupSql = "INSERT INTO grouppads VALUES(?, ?)";
               var addPadToGroupQuery = await dbQuery(addPadToGroupSql, [args.groupId, args.padName]);
               if (addPadToGroupQuery) {
                 addPadToEtherpad(args.padName, args.groupId, function (added) {
@@ -545,7 +545,7 @@ module.exports = {
             getUserObj(userId, async function (userObj) {
               var userName = userObj[0].name;
               var userInGroupSql =
-                "SELECT * from UserGroup where UserGroup.userId = ? and UserGroup.groupID= ?";
+                "SELECT * from usergroup where usergroup.userId = ? and usergroup.groupId= ?";
               getOneValueSql(userInGroupSql, [userId, args.groupId], function (found) {
                 if (found) {
                   getEtherpadGroupFromNormalGroup(args.groupId, function (group) {
@@ -623,7 +623,7 @@ module.exports = {
                 var padID = args.padID;
                 var slice = padID.indexOf("$");
                 var padName = padID.slice(slice + 1, padID.length); //Reassign to Pad Name
-                var padsql = "select * from GroupPads where PadName = ?";
+                var padsql = "select * from grouppads where PadName = ?";
                 existValueInDatabase(padsql, [padName], function (found) {
                   var render_args;
                   if (found && currUser && currGroup && currGroup.length > 0) {
@@ -636,7 +636,7 @@ module.exports = {
                       groupID: req.body.groupID,
                       groupName: currGroup[0].name,
                       settings: settings,
-                      padurl: `localhost:9001/p/auth_session?sessionID="${req.body.sessionID}"&padName="${padName}"`,
+                      padurl: "localhost:9001/p/auth_session?sessionID="+req.body.sessionID+"&padName="+padName,
                     };
                     res.send({
                       code: 201,
