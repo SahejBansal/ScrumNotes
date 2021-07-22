@@ -3,15 +3,15 @@ module.exports = async () => {
     const connection = await mysql.createConnection({
         host: 'localhost',
         user: 'etherpad',
-        password: 'etherpad',
+        password: 'etherPad@33#',
         database: 'etherpad'
     });
 
     const connection2 = await mysql.createConnection({
         host: 'localhost',
         user: 'etherpad',
-        password: 'etherpad',
-        database: 'etherpad_lite_db'
+        password: 'etherPad@33#',
+        database: 'etherpad'
     });
 
   global.dbQuery = async (query, params) => {
