@@ -636,7 +636,9 @@ module.exports = {
                       groupID: req.body.groupID,
                       groupName: currGroup[0].name,
                       settings: settings,
-                      padurl: "13.232.176.251:9001/p/auth_session?sessionID="+req.body.sessionID+"&padName="+padName
+
+                      padurl: "localhost:9001/p/auth_session?sessionID="+req.body.sessionID+"&padName="+padName,
+
                     };
                     res.send({
                       code: 201,
