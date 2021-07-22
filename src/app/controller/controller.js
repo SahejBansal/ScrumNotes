@@ -3,7 +3,7 @@ const { exists } = require("fs");
 
 api = require("etherpad-lite-client");
 const etherpad = api.connect({
-  apikey: "308c704c36b41c846ba1713a59f92c6a9707ced910894de32070287a03bfcb68",
+  apikey: "f4db0a8cd4c80d9e1c25956361fa20ce33123658fbd368a64922a5372e27ff0a",
   host: "localhost",
   port: 9001,
 });
@@ -636,7 +636,9 @@ module.exports = {
                       groupID: req.body.groupID,
                       groupName: currGroup[0].name,
                       settings: settings,
+
                       padurl: "localhost:9001/p/auth_session?sessionID="+req.body.sessionID+"&padName="+padName,
+
                     };
                     res.send({
                       code: 201,
