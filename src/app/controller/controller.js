@@ -3,9 +3,9 @@ const { exists } = require("fs");
 
 api = require("etherpad-lite-client");
 const etherpad = api.connect({
-  apikey: "f4db0a8cd4c80d9e1c25956361fa20ce33123658fbd368a64922a5372e27ff0a",
+  apikey: process.env.ETHERPAD_API_KEY,
   host: "localhost",
-  port: 9001,
+  port: process.env.ETHERPAD_PORT,
 });
 
 setInterval(async function () {
@@ -116,7 +116,8 @@ async function getOneValueSql(sql, params, cb) {
   console.log("debug", "getOneValueSql:" + sql);
   const result = await dbQuery(sql, params);
   if (!result || result == null || result == "") {
-    console.log("error", "getOneValueSql error");
+    console.log("error", "getOneValueSql error" + result);
+    console.log(result)
     cb(false, result);
   } else {
     console.log("log", "getoneValueSql Result:" + result);
@@ -155,6 +156,7 @@ async function getUserObj(userId, cb) {
 }
 
 async function getEtherpadGroupFromNormalGroup(id, cb) {
+  console.log(id)
   var getMapperSql = "Select * from store where store.key = ?";
   var result = await dbQuery2(getMapperSql, ["mapper2group:" + id]);
   //var getMapperQuery = connection2.query(getMapperSql, ["mapper2group:" + id]);
@@ -215,20 +217,25 @@ function sendError(error, code, res) {
   data.success = false;
   data.error = error;
   console.log("error", error);
-  res.send({
+  res.status(code).send({
     code: code,
     message: error,
     data: {},
   });
 }
 
+
 function addPadToEtherpad(padName, groupId, cb) {
+  console.log(groupId)
   getEtherpadGroupFromNormalGroup(groupId, function (group) {
+    
     params = {
       groupID: group,
       padName: padName,
       text: "Insert default text here",
     };
+    console.log(params)
+
     etherpad.createGroupPad(params, function (err) {
       if (err) {
         console.log("error", "something went wrong while adding a group pad");
@@ -251,7 +258,6 @@ function addPadToEtherpad(padName, groupId, cb) {
     });
   });
 }
-
 module.exports = {
   /*
   Saves given name and url into application table. Checks if given name and url combination exists in table. If not then simply creates a new entry.
@@ -282,13 +288,12 @@ module.exports = {
           return;
         } else {
           console.log("success");
-          res.send({
+          res.status(201).send({
             code: 201,
             message: "success",
             data: {
-              client_id: cID,
-              client_secret: cSEC,
-              id: result.insertId,
+              clientId: cID,
+              clientSecret: cSEC
             },
           });
         }
@@ -308,8 +313,8 @@ module.exports = {
     args = {
       name: req.body.name,
       email: req.body.email,
-      client_id: req.body.client_id,
-      client_secret: req.body.client_secret,
+      client_id: req.body.clientId,
+      client_secret: req.body.clientSecret,
     };
     const emailRegex = /^\w+([-+.']\w+)*@\w+([-.]\w+)*\.\w+([-.]\w+)*$/;
 
@@ -331,14 +336,14 @@ module.exports = {
                   res.status(201).send({
                     code: 201,
                     message: "Registration Successful",
-                    data: { token: token, userID: newUserResult.insertId },
+                    data: { token: token, userId: newUserResult.insertId },
                   });
                 });
               } else {
                 // console.log(true)
                 res.status(409).send({
                   code: 409,
-                  message: `user already exists for app id = ${appId}`,
+                  message: `user already exists`,
                   data: {},
                 });
               }
@@ -397,7 +402,7 @@ module.exports = {
                       var addGroupSql =
                         "INSERT INTO etherpad.groups (name, application_id) VALUES(?, ?);";
                       var group = await dbQuery(addGroupSql, [args.groupName, appId]);
-                      data.groupid = group.insertId;
+                      data.groupId = group.insertId;
                       console.log(
                         "log",
                         "Inserted group Id: " + group.insertId
@@ -422,7 +427,7 @@ module.exports = {
                                 "failed to createGroupIfNotExistsFor: " +
                                 err.message
                               );
-                              res.send({
+                              res.status(400).send({
                                 code: 400,
                                 message: "Failed: Etherpad Error",
                                 data: {},
@@ -430,8 +435,8 @@ module.exports = {
                             } else {
                               data.success = true;
                               data.error = null;
-                              data.EtherpadGroupId = val.groupID;
-                              res.send({
+                              data.etherpadGroupId = val.groupID;
+                              res.status(201).send({
                                 code: 201,
                                 message: "Created",
                                 data: data,
@@ -440,7 +445,7 @@ module.exports = {
                           }
                         );
                       } else {
-                        res.send({
+                        res.status(404).send({
                           code: "404",
                           message: "error addusergroupQuery",
                           data: {},
@@ -452,7 +457,7 @@ module.exports = {
               }
             });
           } else {
-            res.send({
+            res.status(404).send({
               code: "404",
               message: "User does not exist for provided token",
               data: {},
@@ -460,7 +465,7 @@ module.exports = {
           }
         });
       } else {
-        res.send({ code: "401", message: "You are not logged in!!", data: {} });
+        res.status(401).send({ code: "401", message: "You are not logged in", data: {} });
       }
     });
   },
@@ -484,6 +489,7 @@ module.exports = {
         args = {
           groupId: req.body.groupId,
           padName: req.body.padName,
+          token: req.body.token
         };
         var existPadInGroupSql =
           "SELECT * from grouppads where grouppads.GroupID = ? and grouppads.PadName = ?";
@@ -491,18 +497,20 @@ module.exports = {
           existPadInGroupSql,
           [args.groupId, args.padName],
           async function (found) {
+            console.log(found);
             if (found || args.padName.length == 0) {
               sendError("Pad already Exists", 400, res);
             } else {
-              var addPadToGroupSql = "INSERT INTO grouppads VALUES(?, ?)";
+              var addPadToGroupSql = "INSERT INTO etherpad.grouppads VALUES(?, ?)";
               var addPadToGroupQuery = await dbQuery(addPadToGroupSql, [args.groupId, args.padName]);
+              console.log(addPadToGroupQuery)
               if (addPadToGroupQuery) {
                 addPadToEtherpad(args.padName, args.groupId, function (added) {
                   if (added) {
                     var data = {};
                     data.success = true;
                     data.error = null;
-                    res.send({
+                    res.status(201).send({
                       code: "201",
                       message: "addPadToGroups success",
                       data: data
@@ -513,7 +521,7 @@ module.exports = {
                   }
                 })
               } else {
-                res.send({
+                res.status(400).send({
                   code: "400",
                   message: "error addPadToGroupQuery",
                   data: {}
@@ -528,6 +536,25 @@ module.exports = {
     });
   },
 
+/* 
+  ***directToPad***
+  Creates an authorId on etherpad for the corresponding userId, then creates a session for the given groupId and authorId
+  @params
+  req: body{
+    groupId,
+    token,
+    padName
+  } 
+  res: {
+    success ,
+    sessionId,
+    etherpadGroupId,
+    authorId,
+    padId
+
+  }
+
+*/
   async directToPad(req, res) {
     userAuthenticated(req, function (authenticated) {
       if (authenticated) {
@@ -537,8 +564,8 @@ module.exports = {
         }
         args = {
           groupId: req.body.groupId,
-          token: req.body.token,
-          padname: req.body.padName,
+          padName: req.body.padName,
+          token: req.body.token
         };
         getUserId(args.token, async function (userId) {
           if (userId) {
@@ -568,14 +595,14 @@ module.exports = {
                             console.log('Session created: ' + session.sessionID);
                             var data = {};
                             data.success = true;
-                            data.session = session.sessionID;
-                            data.group = group;
-                            data.author = etherpad_author.authorID;
+                            data.sessionId = session.sessionID;
+                            data.etherpadGroupId = group;
+                            data.authorId = etherpad_author.authorID;
                             // data.username = req.session.username,
-                            data.pad_name = args.padname;
-                            data.padID = group + "$" + args.padname;
+                            data.padName = group + "$" + args.padName
+                            
                             // data.location = fields.location;
-                            res.send({
+                            res.status(201).send({
                               code: 201,
                               message: "Session created",
                               data: data,
@@ -587,13 +614,13 @@ module.exports = {
                     })
                   });
                 } else {
-                  res.send({ code: 404, message: "User not in Group", data: {} });
+                  res.status(404).send({ code: 404, message: "User not in Group", data: {} });
                 }
               }
               );
             })
           } else {
-            res.send({
+            res.status(404).send({
               code: 404,
               message: "User doesnt exist for given token",
               data: {},
@@ -601,7 +628,7 @@ module.exports = {
           }
         });
       } else {
-        res.send({ code: 401, message: "You are not logged in", data: {} });
+        res.status(401).send({ code: 401, message: "You are not logged in", data: {} });
       }
     });
   },
@@ -613,15 +640,15 @@ module.exports = {
         if (authenticated) {
           args = {
             token: req.body.token,
-            groupID: req.body.groupID,
-            padID: req.body.padID,
-            sessionID: req.body.sessionID //Etherpad PadID not padName
+            groupID: req.body.groupId,
+            padID: req.body.padId,
+            sessionID: req.body.sessionId //Etherpad PadID not padName
           };
           getUserId(args.token, async function (userId) {
             getGroup(args.groupID, function (found, currGroup) {
               getUser(userId, function (found, currUser) {
                 var padID = args.padID;
-                var slice = padID.indexOf("$");
+                var slice = padID.indexOf("$")
                 var padName = padID.slice(slice + 1, padID.length); //Reassign to Pad Name
                 var padsql = "select * from grouppads where PadName = ?";
                 existValueInDatabase(padsql, [padName], function (found) {
@@ -629,18 +656,18 @@ module.exports = {
                   if (found && currUser && currGroup && currGroup.length > 0) {
                     render_args = {
                       errors: [],
-                      padname: padName,
-                      userid: userId,
+                      padName: padName,
+                      userId: userId,
                       // username: req.session.username,
                       // baseurl: req.session.baseurl,
-                      groupID: req.body.groupID,
+                      groupId: req.body.groupID,
                       groupName: currGroup[0].name,
                       settings: settings,
 
-                      padurl: "localhost:9001/p/auth_session?sessionID="+req.body.sessionID+"&padName="+padName,
+                      padUrl: "localhost:9001/p/auth_session?sessionID="+req.body.sessionId+"&padName="+padName,
 
                     };
-                    res.send({
+                    res.status(201).send({
                       code: 201,
                       message: "success",
                       data: render_args
@@ -654,16 +681,16 @@ module.exports = {
                     //group is ok but pad does not exist
                     render_args = {
                       errors: [],
-                      padname: false,
-                      userid: userId,
+                      padName: false,
+                      userId: userId,
                       // username: req.session.username,
                       // baseurl: req.session.baseurl,
-                      groupID: req.body.groupID,
+                      groupId: req.body.groupID,
                       groupName: currGroup[0].name,
                       settings: settings,
-                      padurl: false,
+                      padUrl: false,
                     };
-                    res.send({
+                    res.status(402).send({
                       code: 402,
                       message: "error: pad does not exist",
                       data: render_args
@@ -672,16 +699,16 @@ module.exports = {
                     //Evrithing is bad
                     render_args = {
                       errors: [],
-                      padname: false,
-                      userid: userId,
+                      padName: false,
+                      userId: userId,
                       // username: req.session.username,
                       // baseurl: req.session.baseurl,
-                      groupID: false,
+                      groupId: false,
                       groupName: false,
                       settings: settings,
-                      padurl: false,
+                      padUrl: false,
                     };
-                    res.send({
+                    res.status(400).send({
                       code: 400,
                       message: "error",
                       data: render_args
@@ -693,7 +720,7 @@ module.exports = {
           });
 
         } else {
-          res.send({ code: 401, message: "You are not logged in", data: {} });
+          res.status(401).send({ code: 401, message: "You are not logged in", data: {} });
         }
       });
     });
