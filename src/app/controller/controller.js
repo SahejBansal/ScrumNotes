@@ -663,8 +663,8 @@ module.exports = {
                       groupId: req.body.groupID,
                       groupName: currGroup[0].name,
                       settings: settings,
-
-                      padUrl: "localhost:9001/p/auth_session?sessionID="+req.body.sessionId+"&padName="+padName,
+                      
+                      padUrl: process.env.BASE_URL+"/p/auth_session?sessionID="+req.body.sessionId+"&padName="+padName,
 
                     };
                     res.status(201).send({
